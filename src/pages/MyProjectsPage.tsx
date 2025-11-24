@@ -1,35 +1,42 @@
 import { useState, useEffect } from "react";
 import api from "@/api/axios";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import Navbar from "@/components/ui/layout/Navbar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Typography } from "@/components/ui/typography";
-
-import logo from "../assets/images/logo.svg";
-import avatarImg from "../assets/images/avatar.png";
-import iconExplore from "../assets/images/icon-explore.svg";
-import iconMyProjects from "../assets/images/icon-myprojects.svg";
+import { useNavigate } from "react-router-dom";
 import thumbnailPlaceholder from "../assets/images/thumbnail-placeholder.png";
 import iconPlus from "../assets/images/icon-plus.svg";
 import iconSearch from "../assets/images/icon-search.svg";
 import iconFolderLarge from "../assets/images/icon-folder-large.svg";
-import iconEdit from "../assets/images/icon-edit.svg";
-import iconPublish from "../assets/images/icon-eye.svg";
-import iconUnpublish from "../assets/images/icon-eye-off.svg";
-import iconDelete from "../assets/images/icon-trash.svg";
+import { EyeOff, Eye, Edit, Trash2, Play } from "lucide-react";
+import toast from "react-hot-toast";
 
 type Project = {
-  id: number;
-  title: string;
-  thumbnail: string | null;
-  created_at: string;
-  status: "published" | "archived";
+  id: string;
+  name: string;
+  description: string;
+  thumbnail_image: string | null;
+  is_published: boolean;
+  game_template: number;
 };
 
 export default function MyProjectsPage() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +45,7 @@ export default function MyProjectsPage() {
     const fetchProjects = async () => {
       try {
         setLoading(true);
-        const response = await api.get("/api/game");
+        const response = await api.get("/api/auth/me/game");
         setProjects(response.data.data);
       } catch (err) {
         setError("Failed to fetch projects. Please try again later.");
@@ -50,36 +57,38 @@ export default function MyProjectsPage() {
     fetchProjects();
   }, []);
 
-  const Navbar = () => (
-    <nav className="bg-white border-b sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center h-20">
-        <a href="/">
-          <img src={logo} alt="WordIT Logo" className="h-8" />
-        </a>
-        <div className="hidden md:flex items-center gap-2">
-          <Button variant="ghost" asChild>
-            <a href="/explore" className="flex items-center gap-2">
-              <img src={iconExplore} alt="" className="w-5 h-5" />
-              <span>Explore</span>
-            </a>
-          </Button>
-          <Button variant="secondary" asChild>
-            <a href="/my-projects" className="flex items-center gap-2">
-              <img src={iconMyProjects} alt="" className="w-5 h-5" />
-              <span>My Projects</span>
-            </a>
-          </Button>
-        </div>
-        <div className="flex items-center gap-3">
-          <Avatar className="w-9 h-9">
-            <AvatarImage src={avatarImg} alt="User Avatar" />
-            <AvatarFallback>ZH</AvatarFallback>
-          </Avatar>
-          <span className="text-xs font-medium text-slate-900">zzzdn.hadi</span>
-        </div>
-      </div>
-    </nav>
-  );
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await api.delete(`/api/game/game-type/quiz/${projectId}`);
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      toast.success("Project deleted successfully!");
+    } catch (err) {
+      console.error("Failed to delete project:", err);
+      toast.error("Failed to delete project. Please try again.");
+    }
+  };
+
+  const handleUpdateStatus = async (gameId: string, isPublish: boolean) => {
+    try {
+      const form = new FormData();
+      form.append("is_publish", String(isPublish));
+
+      await api.patch(`/api/game/game-type/quiz/${gameId}`, form);
+
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === gameId ? { ...p, is_published: isPublish } : p,
+        ),
+      );
+
+      toast.success(
+        isPublish ? "Published successfully" : "Unpublished successfully",
+      );
+    } catch (err) {
+      console.error("Failed to update publish status:", err);
+      toast.error("Failed to update status. Please try again.");
+    }
+  };
 
   if (loading)
     return (
@@ -110,7 +119,11 @@ export default function MyProjectsPage() {
         Get started by choosing a template and building your first educational
         game.
       </Typography>
-      <Button size="lg" className="w-full max-w-xs">
+      <Button
+        size="lg"
+        className="w-full max-w-xs"
+        onClick={() => navigate("/create-quiz")}
+      >
         <img src={iconPlus} alt="" className="w-5 h-5 mr-2" />
         Create Your First Game
       </Button>
@@ -118,72 +131,155 @@ export default function MyProjectsPage() {
   );
 
   const ProjectList = () => (
-    <div className="mt-6 space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:grid-cols-1 mt-6">
       {projects.map((project) => (
-        <Card key={project.id} className="p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+        <Card
+          key={project.id}
+          className="relative p-4 h-fit sm:h-80 md:h-fit cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <div className="w-full h-full flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="w-full h-full flex flex-col md:flex-row md:items-center gap-4">
               <img
-                src={project.thumbnail || thumbnailPlaceholder}
-                alt={project.title}
-                className="w-24 h-16 rounded-md object-cover"
+                src={
+                  project.thumbnail_image
+                    ? `${import.meta.env.VITE_API_URL}/${project.thumbnail_image}`
+                    : thumbnailPlaceholder
+                }
+                alt={
+                  project.thumbnail_image
+                    ? project.name
+                    : "Placeholder Thumbnail"
+                }
+                className="w-full md:w-28 md:h-24 rounded-md object-cover"
               />
-              <div>
-                <Typography variant="p" className="font-semibold">
-                  {project.title}
-                </Typography>
-                <Typography variant="small" className="text-muted-foreground">
-                  Created: {new Date(project.created_at).toLocaleDateString()}
-                </Typography>
-                <div className="flex items-center gap-2 mt-2">
-                  <Button variant="outline" size="sm" className="h-7">
-                    <img src={iconEdit} alt="" className="w-3.5 h-3.5 mr-1.5" />
-                    Edit
-                  </Button>
-                  {project.status === "published" ? (
-                    <Button variant="outline" size="sm" className="h-7">
-                      <img
-                        src={iconUnpublish}
-                        alt=""
-                        className="w-3.5 h-3.5 mr-1.5"
-                      />
-                      Unpublish
+              <div className="flex flex-col md:gap-6 justify-between items-stretch h-full w-full">
+                <div className="flex justify-between">
+                  <div className="space-y-1">
+                    <Typography variant="p" className="font-semibold">
+                      {project.name}
+                    </Typography>
+                    <Typography
+                      variant="p"
+                      className="text-sm text-muted-foreground"
+                    >
+                      {project.description}
+                    </Typography>
+                  </div>
+                  <div className="md:hidden">
+                    <Badge
+                      variant={project.is_published ? "default" : "destructive"}
+                      className={
+                        project.is_published
+                          ? "capitalize bg-green-100 text-green-800"
+                          : "capitalize bg-yellow-100 text-yellow-800"
+                      }
+                    >
+                      {project.is_published ? "Published" : "Draft"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-6 md:mt-2">
+                  {project.is_published ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7"
+                      onClick={() => {
+                        navigate(`/quiz/play/${project.id}`);
+                      }}
+                    >
+                      <Play />
+                      Play
                     </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" className="h-7">
-                      <img
-                        src={iconPublish}
-                        alt=""
-                        className="w-3.5 h-3.5 mr-1.5"
-                      />
-                      Publish
-                    </Button>
-                  )}
+                  ) : null}
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-destructive hover:text-destructive"
+                    className="h-7"
+                    onClick={() => {
+                      navigate(`/quiz/edit/${project.id}`);
+                    }}
                   >
-                    <img
-                      src={iconDelete}
-                      alt=""
-                      className="w-3.5 h-3.5 mr-1.5"
-                    />
-                    Delete
+                    <Edit />
+                    Edit
                   </Button>
+                  {project.is_published ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7"
+                      onClick={() => {
+                        handleUpdateStatus(project.id, false);
+                      }}
+                    >
+                      <EyeOff />
+                      Unpublish
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7"
+                      onClick={() => {
+                        handleUpdateStatus(project.id, true);
+                      }}
+                    >
+                      <Eye />
+                      Publish
+                    </Button>
+                  )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete <b>{project.name}</b>?
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                        <AlertDialogAction
+                          className="bg-red-600 hover:bg-red-700"
+                          onClick={() => {
+                            handleDeleteProject(project.id);
+                          }}
+                        >
+                          Yes, Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>
-            <Badge
-              variant={project.status === "published" ? "default" : "secondary"}
-              className={
-                project.status === "published"
-                  ? "capitalize bg-green-100 text-green-800"
-                  : "capitalize bg-yellow-100 text-yellow-800"
-              }
-            >
-              {project.status}
-            </Badge>
+
+            {/* Right side: Badge */}
+            <div className="hidden md:block">
+              <Badge
+                variant={project.is_published ? "default" : "destructive"}
+                className={
+                  project.is_published
+                    ? "text-sm px-3 bg-green-100 text-green-800"
+                    : "text-sm px-3 bg-yellow-100 text-yellow-800"
+                }
+              >
+                {project.is_published ? "Published" : "Draft"}
+              </Badge>
+            </div>
           </div>
         </Card>
       ))}
@@ -203,7 +299,7 @@ export default function MyProjectsPage() {
               Manage your educational games
             </Typography>
           </div>
-          <Button>
+          <Button onClick={() => navigate("/create-quiz")}>
             <img src={iconPlus} alt="" className="w-5 h-5 mr-2" />
             New Game
           </Button>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import api from "@/api/axios";
-import { useAuthStore, type AuthState } from "@/store/authStore";
+import { useAuthStore } from "@/store/useAuthStore";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,8 @@ const footerLinkStyles =
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const setToken = useAuthStore((state: AuthState) => state.setToken);
+  const setToken = useAuthStore((s) => s.setToken);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +55,10 @@ export default function LoginPage() {
       }
 
       setToken(token);
+
+      const me = await api.get("/api/auth/me");
+      setUser(me.data.data);
+
       navigate("/profile");
     } catch (err) {
       const error = err as AxiosError<{ message: string }>;
