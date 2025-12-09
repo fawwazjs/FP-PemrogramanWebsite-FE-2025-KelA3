@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import api from "@/api/axios";
 
+// API URL with fallback for production (VITE_API_URL might be undefined in production build)
+const API_URL = import.meta.env.VITE_API_URL || "https://api.it-its.id";
 // Game Item Images
 import catImage from "./images/cat_image_1765100975047.png";
 import dogImage from "./images/dog_image_1765100992258.png";
@@ -784,14 +785,15 @@ const PairOrNoPairGame = () => {
 
     const fetchData = async () => {
       try {
-        console.log("[DEBUG] Fetching game data using axios...");
-        const response = await api.get(
-          `/api/game/game-type/pair-or-no-pair/${gameId}/play/public`,
+        console.log("[DEBUG] Fetching game data...");
+        const response = await fetch(
+          `${API_URL}/api/game/game-type/pair-or-no-pair/${gameId}/play/public`,
         );
-        console.log("[DEBUG] API Response:", response.data);
+        const result = await response.json();
+        console.log("[DEBUG] API Response:", result);
 
-        // Axios response is already parsed, data is in response.data.data
-        const gameData = response.data.data;
+        // API response: { success: true, data: { items: [...] } }
+        const gameData = result.data;
         console.log("[DEBUG] gameData:", gameData);
         console.log("[DEBUG] items:", gameData?.items);
 
@@ -1137,9 +1139,8 @@ const PairOrNoPairGame = () => {
   // 9. FINISH GAME
   const handleFinish = async () => {
     // Sound is handled by useEffect on gameState change
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-
     try {
+      // Update play count
       await fetch(`${API_URL}/api/game/play-count`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
