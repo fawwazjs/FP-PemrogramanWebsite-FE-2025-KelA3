@@ -2,7 +2,7 @@ import axios, { type AxiosInstance } from "axios";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || "https://api.it-its.id",
   timeout: 10000,
 });
 
