@@ -1,3 +1,5 @@
+// App.tsx
+
 import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Register from "./pages/Register";
@@ -11,9 +13,12 @@ import EditQuiz from "./pages/EditQuiz";
 import Quiz from "./pages/Quiz";
 import ProtectedRoute from "./routes/ProtectedRoutes";
 
-// 📌 TAMBAHAN 1: Import Komponen Game Pair or No Pair
 import PairOrNoPairGame from "./pages/pair-or-no-pair";
 import CreatePairOrNoPair from "./pages/pair-or-no-pair/create";
+
+import FlashCardCreatePage from "./pages/flash-card/create";
+import FlashCardPlayPage from "./pages/flash-card/play";
+import FlashCardEditPage from "./pages/flash-card/edit";
 
 function App() {
   return (
@@ -24,11 +29,18 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/sandbox" element={<Sandbox />} />
         <Route path="/quiz/play/:id" element={<Quiz />} />
+
         <Route
           path="/pair-or-no-pair/play/:gameId"
           element={<PairOrNoPairGame />}
         />
 
+        <Route
+          path="/flash-card/play/:gameId"
+          element={<FlashCardPlayPage />}
+        />
+
+        {/* Protected Area */}
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/my-projects" element={<MyProjectsPage />} />
@@ -39,6 +51,15 @@ function App() {
             element={<CreatePairOrNoPair />}
           />
           <Route path="/quiz/edit/:id" element={<EditQuiz />} />
+
+          <Route
+            path="/create-flash-cards"
+            element={<FlashCardCreatePage />}
+          />
+          <Route
+            path="/flash-card/edit/:id"
+            element={<FlashCardEditPage />}
+          />
         </Route>
       </Routes>
     </>
